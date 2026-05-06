@@ -130,7 +130,7 @@ def main():
 
     while True:
         try:
-            inputdata = input("[*]Gateway:\t")
+            inputdata = input("[*]Gateway>>")
             if not inputdata.strip():
                 continue
 
