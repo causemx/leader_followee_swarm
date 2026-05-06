@@ -1,3 +1,4 @@
+import argparse
 import socket,time,os
 import threading
 import sys
@@ -26,7 +27,7 @@ def udp_listener():
             continue
 
 def cmd_sending(cmd):
-    s.sendto(cmd.encode('utf-8'),("192.168.199.255",24551))
+    s.sendto(cmd.encode('utf-8'),("192.168.3.255",24551))
 
 def boardcast_pos_loop():
     while True :
@@ -61,47 +62,90 @@ def responses():
         print(e)
     return res_str
 
-def cmd_moudle(args):
-    elem = args.split(' ')
-    try :
-        if len(elem) == 1:
-            if elem[0] == "takeoff":
-                cmd_sending("takeoff")
-            elif elem[0] == "land":
-                cmd_sending("land")
-        elif len(elem) > 1:
-            if elem[0] == "mode":
-                mode = elem[1]
-                #cmd_sending("mode " + mode)
-                if isinstance(mode, str):
-                    mode_map = control_func.mode_mapping()
-                    if mode_map is None or mode not in mode_map:
-                        print("Unknown mode '%s'" % mode)
-                    else:
-                        cmd_sending("mode " + mode)
-            elif elem[0] == "line" and elem[1] == "up":
-                cmd_sending("line up")
-            elif elem[0] == "follow":
-                if elem[1] == "on":
-                    cmd_sending("follow on")
-                elif elem[1] == "off":
-                    cmd_sending("follow off")
-    except :
-        pass
 
-udp_service = threading.Thread(target = udp_listener)
-udp_service.start()
-udp_service.join(2)
-time.sleep(0.2)
+def handle_takeoff(args):
+    cmd_sending("takeoff")
 
-pos_service = threading.Thread(target = boardcast_pos_loop)
-pos_service.start()
-pos_service.join(2)
-time.sleep(0.2)
+def handle_land(args):
+    cmd_sending("land")
 
-while True:
-    try:
-        inputdata = input("GatewayCMD > ")
-        cmd_moudle(inputdata)
-    except KeyboardInterrupt:
-        sys.exit(0)
+def handle_mode(args):
+    mode = args.mode
+    mode_map = control_func.mode_mapping()
+    if mode_map is None or mode not in mode_map:
+        print(f"Unknown mode '{mode}'")
+    else:
+        cmd_sending(f"mode {mode}")
+
+def handle_line_up(args):
+    cmd_sending("line up")
+
+def handle_follow(args):
+    if args.state == "on":
+        cmd_sending("follow on")
+    elif args.state == "off":
+        cmd_sending("follow off")
+
+def build_parser():
+    parser = argparse.ArgumentParser(prog="Gateway CMD")
+    subparsers = parser.add_subparsers(dest="command")
+
+    # takeoff
+    parser_takeoff = subparsers.add_parser("takeoff")
+    parser_takeoff.set_defaults(func=handle_takeoff)
+
+    # land
+    parser_land = subparsers.add_parser("land")
+    parser_land.set_defaults(func=handle_land)
+
+    # mode
+    parser_mode = subparsers.add_parser("mode")
+    parser_mode.add_argument("mode", type=str)
+    parser_mode.set_defaults(func=handle_mode)
+
+    # line up
+    parser_line = subparsers.add_parser("line")
+    parser_line.add_argument("direction", choices=["up"])
+    parser_line.set_defaults(func=handle_line_up)
+
+    # follow
+    parser_follow = subparsers.add_parser("follow")
+    parser_follow.add_argument("state", choices=["on", "off"])
+    parser_follow.set_defaults(func=handle_follow)
+
+    return parser
+
+def main():
+    parser = build_parser()
+
+    udp_service = threading.Thread(target = udp_listener)
+    udp_service.start()
+    udp_service.join(2)
+    time.sleep(0.2)
+
+    pos_service = threading.Thread(target = boardcast_pos_loop)
+    pos_service.start()
+    pos_service.join(2)
+    time.sleep(0.2)
+
+    while True:
+        try:
+            inputdata = input("[*]Gateway:\t")
+            if not inputdata.strip():
+                continue
+
+            args = parser.parse_args(inputdata.split())
+
+            if hasattr(args, "func"):
+                args.func(args)
+            else:
+                parser.print_help()
+
+        except SystemExit:
+            # prevent argparse from exiting loop
+            continue
+        except KeyboardInterrupt:
+            sys.exit(0)
+
+if __name__ == "__main__":
+    main()
