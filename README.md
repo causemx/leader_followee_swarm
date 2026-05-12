@@ -1,6 +1,8 @@
 # Swarm control framework for leader-followee architecture
 
 ## Prerequisites
+Check the ModemManager is active? If yes, stop it and disable or remove it.
+
 ```bash
 # Remove the modemmanager, it will takeover serial port
 sudo apt purge modemmanager
