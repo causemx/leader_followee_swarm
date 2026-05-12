@@ -1,6 +1,13 @@
 # Swarm control framework for leader-followee architecture
 
-## prerequisites
+## Prerequisites
+```bash
+# Remove the modemmanager, it will takeover serial port
+sudo apt purge modemmanager
+sudo apt autoremove
+```
+
+## Dependency
 * pymavlink
 * mavproxy
 * future
