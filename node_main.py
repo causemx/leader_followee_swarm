@@ -3,6 +3,8 @@ import time
 import threading
 import control_func
 
+from control_func import LEADER_IP:w
+
 from enum import Enum
 
 # =========================
@@ -10,11 +12,35 @@ from enum import Enum
 # =========================
 UDP_PORT_LISTEN = 24551
 UDP_PORT_SEND = 24550
-TARGET_IP = "192.168.3.117"
+LEADER_IP = "192.168.3.2"
+TARGET_IP = LEADER_IP
 
 FollowMode = 0
-drone_ID = -1
 mode = "-1"
+
+# =========================
+# MANUAL CONFIG
+# =========================
+
+MY_IP = control_func.get_lan_ip()
+
+DRONE_CONFIG = {
+    "192.168.3.2": {
+        "id": 1,
+        "role": "leader"
+    },
+    "192.168.3.3": {
+        "id": 2,
+        "role": "follower"
+    },
+    "192.168.3.4": {
+        "id": 3,
+        "role": "follower"
+    }
+}
+
+drone_ID = DRONE_CONFIG[MY_IP]["id"]
+DRONE_ROLE = DRONE_CONFIG[MY_IP]["role"]
 
 
 # =========================
@@ -50,7 +76,7 @@ def valid_position(data):
 def update_follower_position(leader_data):
     global drone_ID
 
-    if drone_ID == 1:
+    if DRONE_ROLE == "leader":
         return
 
     formation = DroneFormationMapping.A_FORMATION.value[drone_ID - 1]
@@ -157,28 +183,11 @@ def responser_loop():
             print(f"[Responder Error] {e}")
 
 
-# =========================
-# INIT DRONE ID
-# =========================
-def init_drone_id():
-    global drone_ID
-
-    while drone_ID == -1:
-        ip = control_func.get_lan_ip()
-        print(ip)
-
-        parts = ip.split('.')
-        if parts[0] == '192' and parts[1] == '168':
-            drone_ID = int(parts[3])
-
-        time.sleep(1)
-
 
 # =========================
 # MAIN
 # =========================
 if __name__ == "__main__":
-    init_drone_id()
 
     listener_thread = threading.Thread(
         target=udp_listener, args=(drone_ID,), daemon=True

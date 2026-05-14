@@ -31,7 +31,6 @@ socket_sub.setsockopt_string(zmq.SUBSCRIBE, "")
 latest_status = {}
 
 
-
 def zmq_listener():
     global latest_status
 
