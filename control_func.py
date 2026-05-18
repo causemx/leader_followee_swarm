@@ -95,6 +95,7 @@ def get_lan_ip():
 
 def check_cmd(parm):
     if drone_status != "":
+        print(f"[DUBG] drone_status: {drone_status}")
         if int(drone_status.split(',')[10]) == parm:
             return "success!"
         else:
